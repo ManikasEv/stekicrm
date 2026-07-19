@@ -144,11 +144,7 @@ export default function MenuView({ onBack }) {
       setMessage('Gespeichert! Das QR-Menü auf steki.ch/scanmenu ist jetzt aktuell.')
     } catch (error) {
       setStatus('error')
-      setMessage(
-        error.message === 'Unauthorized' || error.message?.includes('Unauthorized')
-          ? 'Speichern fehlgeschlagen: Setze in Netlify die Variable MENU_ADMIN_TOKEN auf StekiMenuPublish2026!'
-          : `Speichern fehlgeschlagen: ${error.message}`,
-      )
+      setMessage(`Speichern fehlgeschlagen: ${error.message}`)
     }
   }
 

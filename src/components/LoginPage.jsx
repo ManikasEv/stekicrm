@@ -29,7 +29,25 @@ export default function LoginPage() {
         return
       }
 
-      setError('Anmeldung unvollständig. Bitte erneut versuchen oder Clerk Dashboard prüfen.')
+      // Password not enabled as first factor → status stays incomplete (e.g. needs_first_factor).
+      if (result.status === 'needs_first_factor') {
+        const strategies = (result.supportedFirstFactors || [])
+          .map((factor) => factor.strategy)
+          .filter(Boolean)
+        setError(
+          strategies.includes('password')
+            ? 'Zusätzlicher Schritt nötig. Bitte erneut versuchen.'
+            : 'Passwort-Login ist in Clerk nicht aktiv. Im Dashboard unter User & authentication → Email → Password für Sign-in aktivieren.',
+        )
+        return
+      }
+
+      if (result.status === 'needs_second_factor') {
+        setError('Zwei-Faktor-Auth ist aktiv. Bitte MFA in Clerk deaktivieren oder Code-Eingabe ergänzen.')
+        return
+      }
+
+      setError(`Anmeldung unvollständig (${result.status}). Clerk Dashboard prüfen.`)
     } catch (err) {
       const message =
         err?.errors?.[0]?.longMessage ||

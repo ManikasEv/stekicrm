@@ -40,11 +40,28 @@ export const menuItems = [
     pita: 15,
     plate: 20,
   },
+  {
+    number: '06',
+    name: 'Veganer Gyros',
+    greek: 'Γύρος vegan',
+    description: 'Veganer Gyros mit veganem Tzatziki, Tomaten, Zwiebeln und Pommes frites',
+    pita: 15,
+    plate: 20,
+  },
+  {
+    number: '07',
+    name: 'Halloumi-Sticks',
+    greek: 'Χαλούμι sticks',
+    description: 'Knusprige Halloumi-Sticks in der Pita mit Tzatziki, Tomaten, Zwiebeln und Pommes frites',
+    pita: 15,
+    plate: 20,
+  },
 ]
 
 export const extras = [
   { name: 'Pommes frites', description: 'Mit Sauce nach Wahl', price: 8 },
   { name: 'Tzatziki', description: 'Portion mit Pita', price: 8 },
+  { name: 'Veganes Tzatziki', description: 'Portion mit Pita', price: 8 },
   { name: 'Tirokafteri', description: 'Pikante Fetacreme mit Pita', price: 8 },
   { name: 'Extra Pita', description: 'Warm und frisch', price: 3 },
   { name: 'Vegetarische Pita', description: 'Pommes, Salat und Sauce nach Wahl', price: 10 },

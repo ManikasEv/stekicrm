@@ -14,21 +14,29 @@ async function finishSignIn(result, setActive) {
   return false
 }
 
-async function startEmailCodeStep(signIn) {
-  const factors = signIn.supportedSecondFactors || []
-  const emailFactor = factors.find((factor) => factor.strategy === 'email_code')
+function findFactor(factors, strategy) {
+  return (factors || []).find((factor) => factor.strategy === strategy)
+}
+
+async function sendEmailCode(signIn, { asSecondFactor }) {
+  const factors = asSecondFactor ? signIn.supportedSecondFactors : signIn.supportedFirstFactors
+  const emailFactor = findFactor(factors, 'email_code')
 
   if (!emailFactor) {
-    const strategies = factors.map((factor) => factor.strategy).join(', ') || 'keine'
-    throw new Error(
-      `E-Mail-Code nicht verfügbar (Strategien: ${strategies}). In Clerk unter Attack protection → Client Trust prüfen.`,
-    )
+    const list = (factors || []).map((factor) => factor.strategy).join(', ') || 'keine'
+    throw new Error(`E-Mail-Code nicht verfügbar (Strategien: ${list}).`)
   }
 
-  await signIn.prepareSecondFactor({
+  const payload = {
     strategy: 'email_code',
     emailAddressId: emailFactor.emailAddressId,
-  })
+  }
+
+  if (asSecondFactor) {
+    await signIn.prepareSecondFactor(payload)
+  } else {
+    await signIn.prepareFirstFactor(payload)
+  }
 }
 
 export default function LoginPage() {
@@ -37,9 +45,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const [step, setStep] = useState('credentials') // credentials | code
+  const [codeKind, setCodeKind] = useState('first') // first | second
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  const continueAfterFactor = async (result) => {
+    if (await finishSignIn(result, setActive)) return true
+
+    if (result.status === 'needs_second_factor' || result.status === 'needs_client_trust') {
+      await sendEmailCode(signIn, { asSecondFactor: true })
+      setCodeKind('second')
+      setStep('code')
+      return true
+    }
+
+    return false
+  }
 
   const onCredentialsSubmit = async (event) => {
     event.preventDefault()
@@ -49,45 +71,41 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await signIn.create({
-        identifier: email.trim(),
-        password,
-      })
+      // Always start with identifier, then pick the enabled first factor.
+      const created = await signIn.create({ identifier: email.trim() })
 
-      if (await finishSignIn(result, setActive)) return
+      if (await finishSignIn(created, setActive)) return
 
-      if (result.status === 'needs_first_factor') {
-        const passwordFactor = (result.supportedFirstFactors || []).find(
-          (factor) => factor.strategy === 'password',
-        )
-        if (passwordFactor) {
-          const attempted = await signIn.attemptFirstFactor({
-            strategy: 'password',
-            password,
-          })
-          if (await finishSignIn(attempted, setActive)) return
+      const firstFactors = created.supportedFirstFactors || signIn.supportedFirstFactors || []
+      const passwordFactor = findFactor(firstFactors, 'password')
+      const emailCodeFactor = findFactor(firstFactors, 'email_code')
 
-          if (attempted.status === 'needs_second_factor' || attempted.status === 'needs_client_trust') {
-            await startEmailCodeStep(signIn)
-            setStep('code')
-            return
-          }
-        }
-
-        setError(
-          'Passwort-Login ist in Clerk nicht aktiv. Unter User & authentication → Email → Password aktivieren.',
-        )
+      if (passwordFactor && password) {
+        const attempted = await signIn.attemptFirstFactor({
+          strategy: 'password',
+          password,
+        })
+        if (await continueAfterFactor(attempted)) return
+        setError(`Anmeldung unvollständig (${attempted.status}).`)
         return
       }
 
-      if (result.status === 'needs_second_factor' || result.status === 'needs_client_trust') {
-        // Not MFA — usually Clerk Client Trust (verify new browser via email code).
-        await startEmailCodeStep(signIn)
+      // Matches Clerk Email tab: "Email verification code" for sign-in.
+      if (emailCodeFactor) {
+        await sendEmailCode(signIn, { asSecondFactor: false })
+        setCodeKind('first')
         setStep('code')
         return
       }
 
-      setError(`Anmeldung unvollständig (${result.status}). Clerk Dashboard prüfen.`)
+      if (!passwordFactor) {
+        setError(
+          'Passwort-Login ist noch nicht aktiv. In Clerk: User & authentication → Password → Sign-in with password einschalten. Bis dahin wird der E-Mail-Code verwendet — bitte Email verification code aktiv lassen.',
+        )
+        return
+      }
+
+      setError('Kein Passwort eingegeben.')
     } catch (err) {
       setError(clerkError(err))
     } finally {
@@ -103,12 +121,18 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await signIn.attemptSecondFactor({
-        strategy: 'email_code',
-        code: code.trim(),
-      })
+      const result =
+        codeKind === 'second'
+          ? await signIn.attemptSecondFactor({
+              strategy: 'email_code',
+              code: code.trim(),
+            })
+          : await signIn.attemptFirstFactor({
+              strategy: 'email_code',
+              code: code.trim(),
+            })
 
-      if (await finishSignIn(result, setActive)) return
+      if (await continueAfterFactor(result)) return
       setError(`Code ungültig oder Anmeldung unvollständig (${result.status}).`)
     } catch (err) {
       setError(clerkError(err))
@@ -122,8 +146,7 @@ export default function LoginPage() {
     setSubmitting(true)
     setError('')
     try {
-      await startEmailCodeStep(signIn)
-      setError('')
+      await sendEmailCode(signIn, { asSecondFactor: codeKind === 'second' })
     } catch (err) {
       setError(clerkError(err))
     } finally {
@@ -150,8 +173,8 @@ export default function LoginPage() {
         <h1>{step === 'code' ? 'Code bestätigen' : 'Anmelden'}</h1>
         <p className="login-lead">
           {step === 'code'
-            ? `Wir haben einen Code an ${email.trim()} gesendet (neues Gerät / Browser).`
-            : 'Internes STEKI-Backoffice. Zugang nur mit freigeschaltetem Konto (E-Mail & Passwort).'}
+            ? `Code an ${email.trim()} gesendet. Bitte Posteingang prüfen.`
+            : 'E-Mail eingeben. Falls Passwort-Login in Clerk aktiv ist, auch Passwort — sonst kommt ein E-Mail-Code.'}
         </p>
 
         {step === 'credentials' ? (
@@ -170,7 +193,7 @@ export default function LoginPage() {
             </label>
 
             <label className="field">
-              <span>Passwort</span>
+              <span>Passwort (optional falls nur E-Mail-Code)</span>
               <div className="password-row">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -179,7 +202,6 @@ export default function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="••••••••"
-                  required
                 />
                 <button
                   className="password-toggle"
@@ -196,7 +218,7 @@ export default function LoginPage() {
 
             <button className="primary-button login-submit" type="submit" disabled={!isLoaded || submitting}>
               <Icon name="check" size={17} />
-              {submitting ? 'Wird angemeldet…' : 'Anmelden'}
+              {submitting ? 'Wird angemeldet…' : 'Weiter'}
             </button>
           </form>
         ) : (

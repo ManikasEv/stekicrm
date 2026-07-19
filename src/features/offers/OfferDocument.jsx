@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   plans: { flexDirection: 'row', justifyContent: 'space-between' },
   planCard: { width: '49%', borderWidth: 1, borderColor: colors.line, padding: 7 },
-  planImage: { width: '100%', height: 170, objectFit: 'contain' },
+  planImage: { width: '100%', height: 210, objectFit: 'contain' },
   planLabel: {
     marginTop: 6,
     fontFamily: 'Helvetica-Bold',

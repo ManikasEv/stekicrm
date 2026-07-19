@@ -104,6 +104,12 @@ button { color: inherit; }
   margin: 22px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6;
   border-top: 1px solid var(--line); padding-top: 16px;
 }
+.login-secondary-actions {
+  display: flex; gap: 10px; margin-top: 4px;
+}
+.login-secondary-actions .secondary-button {
+  flex: 1; min-height: 42px;
+}
 
 .dashboard { width: min(1240px, 90vw); margin: 0 auto; padding: 82px 0 70px; flex: 1; }
 .dashboard-intro { max-width: 720px; }

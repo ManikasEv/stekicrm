@@ -1,6 +1,9 @@
 import { lazy, Suspense, useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import logo from './assets/logo.jpeg'
 import Icon from './components/Icon'
+import LoginPage from './components/LoginPage'
+import LogoutButton from './components/LogoutButton'
 import { company, truckDetails } from './data/company'
 import './App.css'
 
@@ -8,7 +11,16 @@ const OfferBuilder = lazy(() => import('./features/offers/OfferBuilder'))
 const MenuView = lazy(() => import('./features/menu/MenuView'))
 
 function App() {
+  const { isLoaded, isSignedIn } = useAuth()
   const [activeModule, setActiveModule] = useState('dashboard')
+
+  if (!isLoaded) {
+    return <div className="module-loading">Sitzung wird geladen…</div>
+  }
+
+  if (!isSignedIn) {
+    return <LoginPage />
+  }
 
   if (activeModule === 'offer') {
     return (
@@ -38,9 +50,12 @@ function App() {
             <small>Backoffice</small>
           </span>
         </div>
-        <div className="header-company">
-          <span>{company.name}</span>
-          <small>{company.email}</small>
+        <div className="header-actions">
+          <div className="header-company">
+            <span>{company.name}</span>
+            <small>{company.email}</small>
+          </div>
+          <LogoutButton />
         </div>
       </header>
 

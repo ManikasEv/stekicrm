@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import Icon from '../../components/Icon'
+import LogoutButton from '../../components/LogoutButton'
 import { extras, menuItems, sauces } from '../../data/menu'
 
 const PUBLIC_MENU_URL = 'https://steki.ch/scanmenu'
@@ -170,6 +171,7 @@ export default function MenuView({ onBack }) {
           <h1>Online-Menü bearbeiten</h1>
         </div>
         <div className="toolbar-actions">
+          <LogoutButton />
           <a className="secondary-button" href={PUBLIC_MENU_URL} target="_blank" rel="noreferrer">
             Menü öffnen <Icon name="arrow" size={17} />
           </a>

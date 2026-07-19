@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import Icon from '../../components/Icon'
+import LogoutButton from '../../components/LogoutButton'
 import { truckDetails, truckNote } from '../../data/company'
 import OfferDocument from './OfferDocument'
 
@@ -91,6 +92,7 @@ export default function OfferBuilder({ onBack }) {
           <h1>Standortanfrage erstellen</h1>
         </div>
         <div className="toolbar-actions">
+          <LogoutButton />
           <button className="secondary-button" type="button" onClick={newProposal}>
             Neue Anfrage
           </button>

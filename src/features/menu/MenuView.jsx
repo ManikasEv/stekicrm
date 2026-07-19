@@ -5,6 +5,8 @@ import { extras, menuItems, sauces } from '../../data/menu'
 
 const PUBLIC_MENU_URL = 'https://steki.ch/scanmenu'
 const MENU_API_URL = import.meta.env.VITE_MENU_API_URL || 'https://steki.ch/api/menu'
+// Same value must be set as MENU_ADMIN_TOKEN in the website Netlify project.
+const MENU_ADMIN_TOKEN = import.meta.env.VITE_MENU_ADMIN_TOKEN || 'StekiMenuPublish2026!'
 
 const defaultMenu = {
   notice: 'Alle Gerichte werden frisch für dich zubereitet.',
@@ -34,7 +36,6 @@ const price = (value) =>
 
 export default function MenuView({ onBack }) {
   const [menu, setMenu] = useState(defaultMenu)
-  const [token, setToken] = useState(() => sessionStorage.getItem('steki-menu-token') || '')
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('Online-Menü wird geladen…')
 
@@ -123,21 +124,14 @@ export default function MenuView({ onBack }) {
   }
 
   const publishMenu = async () => {
-    if (!token.trim()) {
-      setStatus('error')
-      setMessage('Bitte zuerst den Admin-Schlüssel eingeben.')
-      return
-    }
-
     setStatus('saving')
     setMessage('Änderungen werden veröffentlicht…')
-    sessionStorage.setItem('steki-menu-token', token)
 
     try {
       const response = await fetch(MENU_API_URL, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${MENU_ADMIN_TOKEN}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(menu),
@@ -147,13 +141,13 @@ export default function MenuView({ onBack }) {
 
       setMenu(result.menu)
       setStatus('success')
-      setMessage('Veröffentlicht! Das QR-Menü ist jetzt aktuell.')
+      setMessage('Gespeichert! Das QR-Menü auf steki.ch/scanmenu ist jetzt aktuell.')
     } catch (error) {
       setStatus('error')
       setMessage(
-        error.message === 'Unauthorized'
-          ? 'Der Admin-Schlüssel ist nicht korrekt.'
-          : `Veröffentlichung fehlgeschlagen: ${error.message}`,
+        error.message === 'Unauthorized' || error.message?.includes('Unauthorized')
+          ? 'Speichern fehlgeschlagen: Setze in Netlify die Variable MENU_ADMIN_TOKEN auf StekiMenuPublish2026!'
+          : `Speichern fehlgeschlagen: ${error.message}`,
       )
     }
   }
@@ -179,9 +173,20 @@ export default function MenuView({ onBack }) {
           <span className="module-kicker">QR-SPEISEKARTE</span>
           <h1>Online-Menü bearbeiten</h1>
         </div>
-        <a className="primary-button" href={PUBLIC_MENU_URL} target="_blank" rel="noreferrer">
-          Menü öffnen <Icon name="arrow" size={17} />
-        </a>
+        <div className="toolbar-actions">
+          <a className="secondary-button" href={PUBLIC_MENU_URL} target="_blank" rel="noreferrer">
+            Menü öffnen <Icon name="arrow" size={17} />
+          </a>
+          <button
+            className="primary-button"
+            type="button"
+            disabled={status === 'saving'}
+            onClick={publishMenu}
+          >
+            <Icon name="check" size={17} />
+            {status === 'saving' ? 'Wird gespeichert…' : 'Änderungen speichern'}
+          </button>
+        </div>
       </div>
 
       <div className="menu-editor-layout">
@@ -392,20 +397,12 @@ export default function MenuView({ onBack }) {
 
         <aside className="menu-publish-column">
           <section className="summary-card publish-card">
-            <span className="summary-eyebrow">VERÖFFENTLICHEN</span>
+            <span className="summary-eyebrow">SPEICHERN</span>
             <h3>QR-Menü aktualisieren</h3>
             <p>
-              Änderungen werden sofort unter <strong>steki.ch/scanmenu</strong> sichtbar.
+              Tippe auf den Button – die Änderungen erscheinen sofort unter{' '}
+              <strong>steki.ch/scanmenu</strong>.
             </p>
-            <label className="field token-field">
-              <span>Admin-Schlüssel</span>
-              <input
-                type="password"
-                value={token}
-                placeholder="Netlify MENU_ADMIN_TOKEN"
-                onChange={(event) => setToken(event.target.value)}
-              />
-            </label>
             <button
               className="primary-button publish-button"
               type="button"
@@ -413,7 +410,7 @@ export default function MenuView({ onBack }) {
               onClick={publishMenu}
             >
               <Icon name="check" size={17} />
-              {status === 'saving' ? 'Wird veröffentlicht…' : 'Änderungen veröffentlichen'}
+              {status === 'saving' ? 'Wird gespeichert…' : 'Änderungen speichern'}
             </button>
             <p className={`publish-status ${status}`}>{message}</p>
           </section>

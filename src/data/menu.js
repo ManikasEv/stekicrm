@@ -67,5 +67,13 @@ export const extras = [
   { name: 'Vegetarische Pita', description: 'Pommes, Salat und Sauce nach Wahl', price: 10 },
 ]
 
+export const drinks = [
+  { name: 'Coca-Cola', description: '500 ml', price: 4 },
+  { name: 'Coca-Cola Zero', description: '500 ml', price: 4 },
+  { name: 'Fanta Orange', description: '500 ml', price: 4 },
+  { name: 'Wasser', description: '500 ml', price: 4 },
+  { name: 'Wasser mit Gas', description: '500 ml', price: 4 },
+]
+
 export const sauces =
   'Cocktail, Honig-Senf, Knoblauch, Ketchup, Mayo, Senf oder scharf'

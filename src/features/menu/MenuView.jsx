@@ -2,26 +2,41 @@ import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import Icon from '../../components/Icon'
 import LogoutButton from '../../components/LogoutButton'
-import { extras, menuItems, sauces } from '../../data/menu'
+import { drinks, extras, menuItems, sauces } from '../../data/menu'
 
 const PUBLIC_MENU_URL = 'https://steki.ch/scanmenu'
 const MENU_API_URL = import.meta.env.VITE_MENU_API_URL || 'https://steki.ch/api/menu'
 // Same value must be set as MENU_ADMIN_TOKEN in the website Netlify project.
 const MENU_ADMIN_TOKEN = import.meta.env.VITE_MENU_ADMIN_TOKEN || 'StekiMenuPublish2026!'
 
+const toId = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+
+const defaultDrinksCategory = {
+  id: 'drinks',
+  title: 'Getränke',
+  eyebrow: 'Erfrischung',
+  subtitle: 'Alle Flaschen à 500 ml.',
+  items: drinks.map((item) => ({
+    id: toId(item.name),
+    ...item,
+    available: true,
+  })),
+}
+
 const defaultMenu = {
   notice: 'Alle Gerichte werden frisch für dich zubereitet.',
   sauces,
   items: menuItems.map((item) => ({
-    id: item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    id: toId(item.name),
     ...item,
     available: true,
   })),
   extras: extras.map((item) => ({
-    id: item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    id: toId(item.name),
     ...item,
     available: true,
   })),
+  categories: [defaultDrinksCategory],
 }
 
 const createId = (prefix) =>
@@ -35,6 +50,16 @@ const price = (value) =>
     maximumFractionDigits: 2,
   }).format(Number(value) || 0)
 
+const withCategories = (menu) => ({
+  ...defaultMenu,
+  ...menu,
+  extras: Array.isArray(menu?.extras) ? menu.extras : defaultMenu.extras,
+  categories:
+    Array.isArray(menu?.categories) && menu.categories.length
+      ? menu.categories
+      : defaultMenu.categories,
+})
+
 export default function MenuView({ onBack }) {
   const [menu, setMenu] = useState(defaultMenu)
   const [status, setStatus] = useState('loading')
@@ -45,7 +70,7 @@ export default function MenuView({ onBack }) {
       try {
         const response = await fetch(MENU_API_URL, { cache: 'no-store' })
         if (!response.ok) throw new Error(`Request failed: ${response.status}`)
-        setMenu(await response.json())
+        setMenu(withCategories(await response.json()))
         setStatus('ready')
         setMessage('Aktuelles Online-Menü geladen.')
       } catch {
@@ -71,6 +96,31 @@ export default function MenuView({ onBack }) {
       ...current,
       extras: current.extras.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    }))
+  }
+
+  const updateCategory = (categoryIndex, field, value) => {
+    setMenu((current) => ({
+      ...current,
+      categories: current.categories.map((category, index) =>
+        index === categoryIndex ? { ...category, [field]: value } : category,
+      ),
+    }))
+  }
+
+  const updateCategoryItem = (categoryIndex, itemIndex, field, value) => {
+    setMenu((current) => ({
+      ...current,
+      categories: current.categories.map((category, index) =>
+        index === categoryIndex
+          ? {
+              ...category,
+              items: category.items.map((item, currentItemIndex) =>
+                currentItemIndex === itemIndex ? { ...item, [field]: value } : item,
+              ),
+            }
+          : category,
       ),
     }))
   }
@@ -110,6 +160,53 @@ export default function MenuView({ onBack }) {
     }))
   }
 
+  const addCategory = () => {
+    setMenu((current) => ({
+      ...current,
+      categories: [
+        ...current.categories,
+        {
+          id: createId('category'),
+          title: 'Neue Kategorie',
+          eyebrow: 'Kategorie',
+          subtitle: '',
+          items: [
+            {
+              id: createId('cat-item'),
+              name: 'Neuer Artikel',
+              description: '',
+              price: 0,
+              available: true,
+            },
+          ],
+        },
+      ],
+    }))
+  }
+
+  const addCategoryItem = (categoryIndex) => {
+    setMenu((current) => ({
+      ...current,
+      categories: current.categories.map((category, index) =>
+        index === categoryIndex
+          ? {
+              ...category,
+              items: [
+                ...category.items,
+                {
+                  id: createId('cat-item'),
+                  name: 'Neuer Artikel',
+                  description: '',
+                  price: 0,
+                  available: true,
+                },
+              ],
+            }
+          : category,
+      ),
+    }))
+  }
+
   const removeItem = (index) => {
     setMenu((current) => ({
       ...current,
@@ -121,6 +218,27 @@ export default function MenuView({ onBack }) {
     setMenu((current) => ({
       ...current,
       extras: current.extras.filter((_, itemIndex) => itemIndex !== index),
+    }))
+  }
+
+  const removeCategory = (categoryIndex) => {
+    setMenu((current) => ({
+      ...current,
+      categories: current.categories.filter((_, index) => index !== categoryIndex),
+    }))
+  }
+
+  const removeCategoryItem = (categoryIndex, itemIndex) => {
+    setMenu((current) => ({
+      ...current,
+      categories: current.categories.map((category, index) =>
+        index === categoryIndex
+          ? {
+              ...category,
+              items: category.items.filter((_, currentItemIndex) => currentItemIndex !== itemIndex),
+            }
+          : category,
+      ),
     }))
   }
 
@@ -140,7 +258,7 @@ export default function MenuView({ onBack }) {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || `Request failed: ${response.status}`)
 
-      setMenu(result.menu)
+      setMenu(withCategories(result.menu))
       setStatus('success')
       setMessage('Gespeichert! Das QR-Menü auf steki.ch/scanmenu ist jetzt aktuell.')
     } catch (error) {
@@ -317,7 +435,7 @@ export default function MenuView({ onBack }) {
               <div className="heading-with-step">
                 <span className="step">03</span>
                 <div>
-                  <h2>Beilagen & Extras</h2>
+                  <h2>Beilagen &amp; Extras</h2>
                   <p>Zusätzliche Produkte und Preise</p>
                 </div>
               </div>
@@ -374,21 +492,175 @@ export default function MenuView({ onBack }) {
             </div>
           </section>
 
+          <section className="panel">
+            <div className="panel-heading line-heading">
+              <div className="heading-with-step">
+                <span className="step">04</span>
+                <div>
+                  <h2>Weitere Kategorien</h2>
+                  <p>Getränke oder eigene Abschnitte mit Artikeln und Preisen</p>
+                </div>
+              </div>
+              <button className="add-button" type="button" onClick={addCategory}>
+                <Icon name="plus" size={17} /> Kategorie
+              </button>
+            </div>
+
+            <div className="category-editor-list">
+              {menu.categories.map((category, categoryIndex) => (
+                <article className="category-edit-card" key={category.id}>
+                  <div className="category-edit-head">
+                    <div className="category-edit-meta">
+                      <label className="field">
+                        <span>Titel</span>
+                        <input
+                          value={category.title}
+                          onChange={(event) =>
+                            updateCategory(categoryIndex, 'title', event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Eyebrow</span>
+                        <input
+                          value={category.eyebrow || ''}
+                          onChange={(event) =>
+                            updateCategory(categoryIndex, 'eyebrow', event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="field wide-editor-field">
+                        <span>Untertitel</span>
+                        <input
+                          value={category.subtitle || ''}
+                          onChange={(event) =>
+                            updateCategory(categoryIndex, 'subtitle', event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="category-edit-actions">
+                      <button
+                        className="add-button"
+                        type="button"
+                        onClick={() => addCategoryItem(categoryIndex)}
+                      >
+                        <Icon name="plus" size={17} /> Artikel
+                      </button>
+                      <button
+                        className="icon-button"
+                        type="button"
+                        aria-label={`${category.title} entfernen`}
+                        onClick={() => removeCategory(categoryIndex)}
+                      >
+                        <Icon name="trash" size={17} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="extras-editor-list">
+                    {category.items.map((item, itemIndex) => (
+                      <article className={!item.available ? 'is-disabled' : ''} key={item.id}>
+                        <label className="availability-toggle">
+                          <input
+                            type="checkbox"
+                            checked={item.available}
+                            onChange={(event) =>
+                              updateCategoryItem(
+                                categoryIndex,
+                                itemIndex,
+                                'available',
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>{item.available ? 'Verfügbar' : 'Ausverkauft'}</span>
+                        </label>
+                        <label className="field">
+                          <span>Name</span>
+                          <input
+                            value={item.name}
+                            onChange={(event) =>
+                              updateCategoryItem(categoryIndex, itemIndex, 'name', event.target.value)
+                            }
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Beschreibung</span>
+                          <input
+                            value={item.description}
+                            onChange={(event) =>
+                              updateCategoryItem(
+                                categoryIndex,
+                                itemIndex,
+                                'description',
+                                event.target.value,
+                              )
+                            }
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Preis CHF</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={item.price}
+                            onChange={(event) =>
+                              updateCategoryItem(categoryIndex, itemIndex, 'price', event.target.value)
+                            }
+                          />
+                        </label>
+                        <button
+                          className="icon-button"
+                          type="button"
+                          aria-label={`${item.name} entfernen`}
+                          onClick={() => removeCategoryItem(categoryIndex, itemIndex)}
+                        >
+                          <Icon name="trash" size={17} />
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
           <section className="menu-preview-panel">
             <div>
               <span className="module-kicker">VORSCHAU</span>
               <h2>Aktuell sichtbare Gerichte</h2>
             </div>
             <div className="editor-preview-list">
-              {menu.items.filter((item) => item.available).map((item) => (
-                <article key={item.id}>
-                  <span>
-                    <strong>{item.name}</strong>
-                    <small>{item.description}</small>
-                  </span>
-                  <strong>{price(item.pita)} / {price(item.plate)}</strong>
-                </article>
-              ))}
+              {menu.items
+                .filter((item) => item.available)
+                .map((item) => (
+                  <article key={item.id}>
+                    <span>
+                      <strong>{item.name}</strong>
+                      <small>{item.description}</small>
+                    </span>
+                    <strong>
+                      {price(item.pita)} / {price(item.plate)}
+                    </strong>
+                  </article>
+                ))}
+              {menu.categories.flatMap((category) =>
+                category.items
+                  .filter((item) => item.available)
+                  .map((item) => (
+                    <article key={`${category.id}-${item.id}`}>
+                      <span>
+                        <strong>
+                          {category.title}: {item.name}
+                        </strong>
+                        <small>{item.description}</small>
+                      </span>
+                      <strong>{price(item.price)}</strong>
+                    </article>
+                  )),
+              )}
             </div>
           </section>
         </main>

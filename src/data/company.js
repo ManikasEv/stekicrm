@@ -1,7 +1,7 @@
 export const company = {
   name: 'STEKI GmbH',
   brand: 'STEKI Greek Taste',
-  address: 'Bahnhofstrasse 107',
+  address: 'Landstrasse 89 (Zentrumsplatz)',
   city: '5430 Wettingen',
   email: 'info@steki.ch',
   website: 'steki.ch',

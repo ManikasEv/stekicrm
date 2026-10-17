@@ -1,39 +1,23 @@
 export const menuItems = [
   {
     number: '01',
-    name: 'Bifteki vom Rind',
-    greek: 'Μπιφτέκι',
-    description: '100 % Rindfleisch, Tzatziki, Tomaten, Zwiebeln und Pommes frites',
-    pita: 17,
-    plate: 24,
+    name: 'Gyros vom Schwein',
+    greek: 'Γύρος χοιρινός',
+    description: 'Saftiger Schweinegyros mit Tzatziki, Tomaten, Zwiebeln und Pommes frites',
+    pita: 15,
+    plate: 20,
     featured: true,
   },
   {
     number: '02',
-    name: 'Souvlaki vom Schwein',
-    greek: 'Σουβλάκι χοιρινό',
-    description: 'Saftiger Grillspiess mit Tzatziki, Tomaten, Zwiebeln und Pommes frites',
+    name: 'Gyros vom Poulet',
+    greek: 'Γύρος κοτόπουλο',
+    description: 'Zarter Pouletgyros mit Tzatziki, Tomaten, Zwiebeln und Pommes frites',
     pita: 15,
     plate: 20,
   },
   {
     number: '03',
-    name: 'Souvlaki vom Poulet',
-    greek: 'Σουβλάκι κοτόπουλο',
-    description: 'Zarter Pouletspiess mit Tzatziki, Tomaten, Zwiebeln und Pommes frites',
-    pita: 15,
-    plate: 20,
-  },
-  {
-    number: '04',
-    name: 'Pancetta vom Schwein',
-    greek: 'Πανσέτα χοιρινή',
-    description: 'Grillierter Schweinebauch, Tzatziki, Tomaten, Zwiebeln und Pommes frites',
-    pita: 15,
-    plate: 20,
-  },
-  {
-    number: '05',
     name: 'Veganer Gyros',
     greek: 'Γύρος vegan',
     description: 'Veganer Gyros mit veganem Tzatziki, Tomaten, Zwiebeln und Pommes frites',
@@ -41,7 +25,7 @@ export const menuItems = [
     plate: 20,
   },
   {
-    number: '06',
+    number: '04',
     name: 'Halloumi-Sticks',
     greek: 'Χαλούμι sticks',
     description: 'Knusprige Halloumi-Sticks in der Pita mit Tzatziki, Tomaten, Zwiebeln und Pommes frites',
@@ -68,4 +52,4 @@ export const drinks = [
 ]
 
 export const sauces =
-  'Tzatziki, Tirokafteri, Honig-Senf, Cocktail, Mayo, Ketchup, Senf und scharf'
+  'Tzatziki, Tirokafteri, Cocktail, Mayo, Ketchup, Senf und scharf'
